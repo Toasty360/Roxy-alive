@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="HLS Video Player">
+    <meta name="author" content="Toasty360">
+    <title>HLS Video Player</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #046307;
+            --secondary-color: #2196f3;
+            --background-color: #040404;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #b0bec5;
+            --error-color: #ff5252;
+            --success-color: #4caf50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            background: var(--background-color);
+            background-size: 400% 400%;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+
+        .container {
+            width: 95%;
+            max-width: 1000px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, var(--primary-color), #00bcd4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+        }
+
+        h1::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: var(--primary-color);
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+
+        .input-group {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 25px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-field {
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            resize: none;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        #generate-url {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        #generate-url:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        #clear-form {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        #clear-form:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        video {
+            width: 100%;
+            border-radius: 15px;
+            background: #000;
+        }
+
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            background: var(--success-color);
+            color: white;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .status-message.show {
+            transform: translateX(0);
+        }
+
+        .status-message.error {
+            background: var(--error-color);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .github {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div>
+            <a href="https://github.com/Toasty360/Roxy" target="_blank" rel="noopener noreferrer">
+                <i class="github fa-brands fa-github fa-xl"></i>
+            </a>
+        </div>
+        <h1>HLS Video Player</h1>
+        <div class="input-group">
+            <div class="input-field">
+                <label for="hls-url"><i class="fas fa-link"></i> HLS URL</label>
+                <input type="text" id="hls-url" placeholder="Enter the HLS stream URL" />
+            </div>
+
+            <div class="input-field">
+                <label for="headers"><i class="fas fa-code"></i> Headers (JSON format)</label>
+                <textarea id="headers"
+                    placeholder="{'Referer': 'https://example.com', 'User-Agent': 'Custom User Agent'}"></textarea>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="generate-url">
+                <i class="fas fa-play"></i> Play Stream
+            </button>
+            <button id="clear-form">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+        </div>
+
+        <div class="video-container">
+            <video id="video-player" controls playsinline></video>
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-message" id="status-message"></div>
+
+    <script>
+        const proxyBase = "https://slave.nopile6577.workers.dev/proxy?url=";
+        const player = document.getElementById("video-player");
+        const loading = document.querySelector(".loading");
+        const statusMessage = document.getElementById("status-message");
+        let currentHls = null;
+
+        function showMessage(message, isError = false) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message${isError ? ' error' : ''} show`;
+            setTimeout(() => {
+                statusMessage.className = 'status-message';
+            }, 3000);
+        }
+
+        function showLoading(show) {
+            loading.className = `loading${show ? ' show' : ''}`;
+        }
+
+        document.getElementById("generate-url").addEventListener("click", async () => {
+            const hlsUrl = document.getElementById("hls-url").value.trim();
+            const headersInput = document.getElementById("headers").value.trim();
+
+            if (!hlsUrl) {
+                showMessage("Please enter a valid HLS URL", true);
+                return;
+            }
+
+            try {
+                showLoading(true);
+
+                // Cleanup previous instance
+                if (currentHls) {
+                    currentHls.destroy();
+                    currentHls = null;
+                }
+
+                const headers = headersInput ? JSON.parse(headersInput) : {};
+                const proxiedUrl = proxyBase + btoa(hlsUrl) + "&headers=" + btoa(JSON.stringify(headers));
+
+                if (Hls.isSupported()) {
+                    currentHls = new Hls({
+                        debug: false,
+                        maxBufferLength: 30,
+                        maxMaxBufferLength: 600,
+                        maxBufferSize: 60 * 1000 * 1000,
+                        startFragPrefetch: true,
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        fragLoadingMaxRetry: 5,
+                        manifestLoadingMaxRetry: 5,
+                        levelLoadingMaxRetry: 5,
+                        fragLoadingRetryDelay: 2000,
+                    });
+
+                    currentHls.loadSource(proxiedUrl);
+                    currentHls.attachMedia(player);
+
+                    currentHls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        showLoading(false);
+                        showMessage("Stream loaded successfully");
+                        player.play().catch(err => {
+                            console.warn("Autoplay prevented:", err);
+                        });
+                    });
+
+                    currentHls.on(Hls.Events.ERROR, (event, data) => {
+                        if (data.fatal) {
+                            switch (data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    showMessage("Network error, retrying...", true);
+                                    currentHls.startLoad();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    showMessage("Media error, recovering...", true);
+                                    currentHls.recoverMediaError();
+                                    break;
+                                default:
+                                    showMessage("Fatal error occurred", true);
+                                    currentHls.destroy();
+                                    break;
+                            }
+                        }
+                    });
+                } else if (player.canPlayType("application/vnd.apple.mpegurl")) {
+                    player.src = proxiedUrl;
+                    player.addEventListener('loadedmetadata', () => {
+                        showLoading(false);
+                        showMessage("Stream loaded successfully");
+                        player.play().catch(err => {
+                            console.warn("Autoplay prevented:", err);
+                        });
+                    });
+                } else {
+                    showLoading(false);
+                    showMessage("Your browser does not support HLS playback", true);
+                }
+            } catch (err) {
+                showLoading(false);
+                showMessage("Invalid headers format", true);
+                console.error(err);
+            }
+        });
+
+        document.getElementById("clear-form").addEventListener("click", () => {
+            document.getElementById("hls-url").value = "";
+            document.getElementById("headers").value = "";
+            if (currentHls) {
+                currentHls.destroy();
+                currentHls = null;
+            }
+            player.src = "";
+            showMessage("Form cleared");
+        });
+
+        ["hls-url", "headers"].forEach(id => {
+            const element = document.getElementById(id);
+            element.value = localStorage.getItem(id) || "";
+            element.addEventListener("input", () => {
+                localStorage.setItem(id, element.value);
+            });
+        });
+    </script>
+</body>
+
+</html>
