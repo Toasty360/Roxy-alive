@@ -328,7 +328,7 @@
                 }
 
                 const headers = headersInput ? JSON.parse(headersInput) : {};
-                const proxiedUrl = proxyBase + btoa(hlsUrl) + "&headers=" + btoa(JSON.stringify(headers));
+                const proxiedUrl = proxyBase + encodeURIComponent(btoa(hlsUrl)) + "&headers=" + btoa(JSON.stringify(headers));
 
                 if (Hls.isSupported()) {
                     currentHls = new Hls({
