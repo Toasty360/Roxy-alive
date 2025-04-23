@@ -237,14 +237,34 @@
             }
         }
 
-        .github {
+        .social-icons {
             position: fixed;
             top: 20px;
             right: 20px;
             color: var(--text-primary);
-            font-size: 1.5rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: transform 0.3s ease;
+            gap: 10px;
+            display: flex;
+            padding: 2px;
+        }
+
+        .social-icons a i {
+            cursor: pointer;
+
+        }
+
+        .globe {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+
+        }
+
+        .offline {
+            color: var(--error-color);
+            font-size: 1.5rem;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0"></script>
@@ -252,7 +272,8 @@
 
 <body>
     <div class="container">
-        <div>
+        <div class="social-icons">
+            <i type="1" class="globe fa-solid fa-globe"></i>
             <a href="https://github.com/Toasty360/Roxy" target="_blank" rel="noopener noreferrer">
                 <i class="github fa-brands fa-github fa-xl"></i>
             </a>
@@ -291,7 +312,18 @@
     <div class="status-message" id="status-message"></div>
 
     <script>
-        const proxyBase = "https://slave.nopile6577.workers.dev/proxy?url=";
+        let proxyBase = "http://slave.nopile6577.workers.dev/proxy?url=";
+
+        const globe = document.querySelector(".globe");
+        globe.addEventListener("click", () => {
+            const isOnline = globe.getAttribute("type") === "1";
+            proxyBase = isOnline
+                ? "http://localhost:8787/proxy?url="
+                : "http://slave.nopile6577.workers.dev/proxy?url=";
+            globe.setAttribute("type", isOnline ? "2" : "1");
+            globe.classList.toggle("offline", isOnline);
+        });
+
         const player = document.getElementById("video-player");
         const loading = document.querySelector(".loading");
         const statusMessage = document.getElementById("status-message");
@@ -321,14 +353,23 @@
             try {
                 showLoading(true);
 
-                // Cleanup previous instance
                 if (currentHls) {
                     currentHls.destroy();
                     currentHls = null;
                 }
 
-                const headers = headersInput ? JSON.parse(headersInput) : {};
-                const proxiedUrl = proxyBase + encodeURIComponent(btoa(hlsUrl)) + "&headers=" + btoa(JSON.stringify(headers));
+                let headers = null;
+                if (headersInput) {
+                    try {
+                        headers = JSON.parse(headersInput);
+                    } catch (e) {
+                        throw new Error("Invalid headers JSON");
+                    }
+                }
+
+                const encodedUrl = encodeURIComponent(hlsUrl);
+                const encodedHeaders = headers ? `&headers=${btoa(JSON.stringify(headers))}` : "";
+                const proxiedUrl = `${proxyBase}${encodedUrl}${encodedHeaders}`;
 
                 if (Hls.isSupported()) {
                     currentHls = new Hls({
@@ -389,7 +430,7 @@
                 }
             } catch (err) {
                 showLoading(false);
-                showMessage("Invalid headers format", true);
+                showMessage(err.message || "Invalid headers format", true);
                 console.error(err);
             }
         });
@@ -412,6 +453,7 @@
                 localStorage.setItem(id, element.value);
             });
         });
+
     </script>
 </body>
 
